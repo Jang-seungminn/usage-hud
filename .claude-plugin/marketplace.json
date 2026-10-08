@@ -1,0 +1,12 @@
+{
+  "name": "usage-hud",
+  "owner": { "name": "Jang-seungminn" },
+  "description": "usage-hud: a usage HUD for Claude Code with two animated dogs",
+  "plugins": [
+    {
+      "name": "usage-hud",
+      "source": "./",
+      "description": "Above-prompt usage HUD with two animated dogs"
+    }
+  ]
+}

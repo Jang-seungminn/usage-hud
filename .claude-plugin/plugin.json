@@ -1,0 +1,10 @@
+{
+  "name": "usage-hud",
+  "version": "1.0.0",
+  "description": "Above-prompt HUD for Claude Code: context fill, 5h/7d rate limits with burn ETA, turn cost, cache hit, git, model and two animated dogs",
+  "author": { "name": "Jang-seungminn", "url": "https://github.com/Jang-seungminn" },
+  "homepage": "https://github.com/Jang-seungminn/usage-hud",
+  "repository": "https://github.com/Jang-seungminn/usage-hud",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}
