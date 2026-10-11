@@ -32,6 +32,12 @@ export type BoardGoal = {
   condition?: string
 }
 
+// pinboard 의 .claude/pinboard.md 한 줄: - [결정|할일] YYYY-MM-DD 내용
+export type BoardPin = { kind: '결정' | '할일'; text: string }
+
+// auto-handoff 의 .claude/handoff/ 상태
+export type BoardHandoff = { writtenAt: number | null; notes: number }
+
 declare module 'claude-code' {
   interface PluginState {
     'plan-board': {
@@ -43,6 +49,9 @@ declare module 'claude-code' {
       agents: BoardAgent[]
       now: number
       isOpened: boolean
+      pins: BoardPin[]
+      nextSteps: string[]
+      handoff: BoardHandoff
     }
   }
 }

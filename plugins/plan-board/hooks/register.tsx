@@ -1,9 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { BoardAgent, BoardGoal, BoardPlan, BoardSpec, BoardTask } from '../types'
+import type { BoardAgent, BoardGoal, BoardHandoff, BoardPin, BoardPlan, BoardSpec, BoardTask } from '../types'
 import {
-  bar, baseName, createTask, formatElapsed, fromTodos, isPlanPath, isSpecPath, oneLine, parsePlan,
+  bar, baseName, countBullets, createTask, formatElapsed, fromTodos, isPlanPath, isSpecPath, oneLine, parseNextSteps, parsePins, parsePlan,
   planProgress, sortTasks, titleOf, updateTask, upsertAgent,
 } from './lib'
 
@@ -18,12 +18,18 @@ const spec = atom({ plugin: 'plan-board', key: 'spec' } as const, null as BoardS
 const agents = atom({ plugin: 'plan-board', key: 'agents' } as const, [] as BoardAgent[])
 const now = atom({ plugin: 'plan-board', key: 'now' } as const, 0)
 const isOpened = atom({ plugin: 'plan-board', key: 'isOpened' } as const, false)
+const pins = atom({ plugin: 'plan-board', key: 'pins' } as const, [] as BoardPin[])
+const nextSteps = atom({ plugin: 'plan-board', key: 'nextSteps' } as const, [] as string[])
+const handoff = atom({ plugin: 'plan-board', key: 'handoff' } as const, { writtenAt: null, notes: 0 } as BoardHandoff)
 
 const SHOW_DONE = 3
 const SHOW_NEXT_TASKS = 4
 const SHOW_DONE_AGENTS = 3
+// /pin, /note 는 다른 mod 의 명령이라 끝나는 순간을 모른다: 파일을 이 간격으로 다시 읽는다.
+const DOCS_EVERY_MS = 10_000
 
 let ticker: { cancel: () => void } | undefined
+let docsTicker: { cancel: () => void } | undefined
 
 // Opened once, unasked, the first time there is something to show.
 async function openOnce($: EngineInterface): Promise<void> {
@@ -52,6 +58,29 @@ async function loadSpec($: EngineInterface, path: string): Promise<void> {
   }
 }
 
+async function readOr($: EngineInterface, path: string): Promise<string> {
+  try {
+    return await $.fs.read(path)
+  } catch {
+    return ''
+  }
+}
+
+const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+// pinboard 의 핀과 auto-handoff 의 인수인계서·메모. 없으면 비어 있을 뿐이다.
+async function refreshDocs($: EngineInterface): Promise<void> {
+  const base = `${await $.session.root()}/.claude`
+  const found = parsePins(await readOr($, `${base}/pinboard.md`))
+  const stat = await $.fs.stat(`${base}/handoff/HANDOFF.md`).catch(() => undefined)
+  const state: BoardHandoff = {
+    writtenAt: stat?.kind === 'file' ? stat.mtimeMs : null,
+    notes: countBullets(await readOr($, `${base}/handoff/NOTES.md`)),
+  }
+  await update($, pins, old => (sameJson(old, found) ? old : found))
+  await update($, handoff, old => (sameJson(old, state) ? old : state))
+}
+
 async function tick($: EngineInterface): Promise<void> {
   const list = await read($, agents)
   if (!list.some(a => a.status === 'running')) return
@@ -65,6 +94,7 @@ async function reset($: EngineInterface): Promise<void> {
   await update($, plan, () => null)
   await update($, spec, () => null)
   await update($, agents, () => [])
+  await update($, nextSteps, () => [])
 }
 
 export const register: Register = on => {
@@ -75,6 +105,9 @@ export const register: Register = on => {
     await update($, now, () => 0)
     ticker?.cancel()
     ticker = $.clock.every(1000, () => tick($))
+    await refreshDocs($).catch(() => undefined)
+    docsTicker?.cancel()
+    docsTicker = $.clock.every(DOCS_EVERY_MS, () => refreshDocs($).catch(() => undefined))
     // A reload keeps the state: show the pane again if it had content.
     const p = await read($, plan)
     if (p) await loadPlan($, p.path)
@@ -196,6 +229,17 @@ export const register: Register = on => {
     return r
   }).catch(($, e, next) => next(e))
 
+  on('turn.complete', async ($, e, next) => {
+    const done = await next(e)
+    if (e.agentId === undefined && e.reason === 'answer') {
+      const found = parseNextSteps(e.answer)
+      await update($, nextSteps, () => found)
+      if (found.length > 0) await openOnce($)
+      await refreshDocs($).catch(() => undefined)
+    }
+    return done
+  }).catch(($, e, next) => next(e))
+
   on('classic.SubagentStart', async ($, e, next) => {
     const at = await $.clock.now()
     await update($, agents, list => upsertAgent(list, e.agent_id, { type: e.agent_type, status: 'running' }, at))
@@ -237,7 +281,12 @@ export const register: Register = on => {
     const taskList = await read($, tasks)
     const todoList = await read($, todos)
     const agentList = await read($, agents)
-    const at = (await read($, now)) || (await $.clock.now())
+    const pinList = await read($, pins)
+    const steps = await read($, nextSteps)
+    const ho = await read($, handoff)
+    // Read now so a redraw the ticker asked for is tracked; draw with the real time.
+    await read($, now)
+    const at = await $.clock.now()
     const width = Math.max(20, e.props.bodyColumns)
     const barWidth = Math.max(6, Math.min(20, width - 16))
 
@@ -279,6 +328,20 @@ export const register: Register = on => {
         <Box key="goal" flexDirection="column">
           {heading('h-goal', '◎ 목표')}
           {goalLines}
+        </Box>,
+      )
+    }
+
+    // ── pinboard ──
+    if (pinList.length > 0) {
+      sections.push(
+        <Box key="pins" flexDirection="column">
+          {heading('h-pins', '⚑ 핀', `${pinList.length}`)}
+          {pinList.map((pin, i) => (
+            <Text key={`pin${i}`} wrap="truncate">
+              <Text color={pin.kind === '할일' ? 'warning' : 'suggestion'}>[{pin.kind}]</Text> {pin.text}
+            </Text>
+          ))}
         </Box>,
       )
     }
@@ -375,6 +438,31 @@ export const register: Register = on => {
               {a.endedAt ? ` ${formatElapsed(a.endedAt - a.startedAt)}` : ''}
             </Text>
           ))}
+        </Box>,
+      )
+    }
+
+    // ── 마지막 응답이 제안한 다음 단계 ──
+    if (steps.length > 0) {
+      sections.push(
+        <Box key="next" flexDirection="column">
+          {heading('h-next', '→ 다음 단계', '/next <번호>')}
+          {steps.map((one, i) => (
+            <Text key={`next${i}`} wrap="truncate">{i + 1}. {one}</Text>
+          ))}
+        </Box>,
+      )
+    }
+
+    // ── auto-handoff ──
+    if (ho.writtenAt !== null || ho.notes > 0) {
+      sections.push(
+        <Box key="handoff" flexDirection="column">
+          {heading('h-handoff', '⇄ 인수인계')}
+          <Text wrap="truncate" dimColor={ho.writtenAt === null}>
+            {ho.writtenAt === null ? '인수인계서 없음 · /handoff' : `인수인계서 ${formatElapsed(at - ho.writtenAt)} 전 · /pickup`}
+          </Text>
+          {ho.notes > 0 ? <Text dimColor>메모 {ho.notes}개 · /note</Text> : null}
         </Box>,
       )
     }

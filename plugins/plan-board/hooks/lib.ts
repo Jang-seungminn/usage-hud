@@ -1,4 +1,4 @@
-import type { BoardAgent, BoardPlan, BoardTask, PlanStep, PlanTask, TaskStatus } from '../types'
+import type { BoardAgent, BoardPin, BoardPlan, BoardTask, PlanStep, PlanTask, TaskStatus } from '../types'
 
 // superpowers writes docs/superpowers/plans/<date>-<feature>.md and
 // docs/superpowers/specs/<date>-<topic>-design.md; older versions docs/plans/.
@@ -146,4 +146,32 @@ export function bar(done: number, total: number, width: number): [number, number
   if (total <= 0) return [0, width]
   const filled = Math.min(width, Math.round((done / total) * width))
   return [filled, width - filled]
+}
+
+// ── pinboard, next-steps, auto-handoff 가 남기는 것 ──
+
+const PIN = /^- \[(결정|할일)\] \d{4}-\d{2}-\d{2} (.+)$/
+
+export function parsePins(text: string): BoardPin[] {
+  return text.split('\n').flatMap(line => {
+    const found = PIN.exec(line.trim())
+    return found ? [{ kind: found[1] as BoardPin['kind'], text: found[2]!.trim() }] : []
+  })
+}
+
+// 응답의 마지막 "다음 단계" 아래에 있는 열린 체크박스.
+export function parseNextSteps(answer: string): string[] {
+  const at = answer.lastIndexOf('다음 단계')
+  if (at === -1) return []
+  return answer
+    .slice(at)
+    .split('\n')
+    .map(line => /^\s*[-*]\s*\[ \]\s*(.+)$/.exec(line)?.[1])
+    .filter((one): one is string => one !== undefined && one.trim() !== '')
+    .map(one => plain(one))
+    .slice(0, 5)
+}
+
+export function countBullets(text: string): number {
+  return text.split('\n').filter(line => line.startsWith('- ')).length
 }

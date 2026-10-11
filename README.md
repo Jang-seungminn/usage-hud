@@ -22,11 +22,22 @@ Claude Code 터미널 세션의 프롬프트에서 다음을 입력합니다.
 
 `Add marketplace?`에 `y`를 입력하고, scope를 고릅니다. 모든 세션에서 쓰려면 user scope를 선택합니다. 설치한 세션에서 바로 동작합니다.
 
-같은 marketplace에 진행 상황 패널 [plan-board](#plan-board)도 있습니다.
+같은 marketplace에 다른 mod도 있습니다. 필요한 것만 같은 방식으로 설치합니다.
 
 ```
 /plugin install plan-board --marketplace Jang-seungminn/usage-hud
 ```
+
+| mod | 하는 일 |
+|---|---|
+| [plan-board](#plan-board) | 사이드 패널: 목표, superpowers 플랜 진행률, 작업, 서브에이전트, 핀, 다음 단계, 인수인계 |
+| auto-handoff | `/handoff`로 대화를 `.claude/handoff/HANDOFF.md`에 정리, 새 세션에서 `/pickup`으로 이어받기, `/note`로 메모. 컨텍스트 70%·90%에서 알림 |
+| pinboard | `/pin <결정>`, `/pin 할일: <내용>`, `/unpin <번호>`, `/pins`. 핀은 `.claude/pinboard.md`에 저장되고 매 요청의 시스템 프롬프트에 실림 |
+| next-steps | 작업을 끝낸 응답 끝에 `다음 단계` 체크박스 2~3개를 제안. `/next`로 목록, `/next <번호>`로 입력창에 넣기 |
+| prompt-coach | `/coach <요청>`(또는 입력창의 내용)을 대상·완료 기준·제약이 분명한 요청으로 다듬어 입력창에 넣기. 실행 전 불명확하면 질문하라는 규칙 포함 |
+| korean-ui | 한국어 응답 규칙, 기본 슬래시 명령 설명을 한국어로 |
+
+auto-handoff, pinboard, next-steps, prompt-coach, korean-ui는 시스템 프롬프트에 짧은 규칙을 하나씩 덧붙입니다. 쓰지 않는 것은 설치하지 않는 편이 요청당 토큰을 아낍니다.
 
 ## 보여주는 것
 
@@ -104,6 +115,11 @@ step  ██████████░░ 3/5
 | spec | `…/specs/*.md` 또는 `*-design.md`를 쓰면 제목을 표시 |
 | 작업 / 할 일 | TaskCreate·TaskUpdate·TaskList, TodoWrite. 진행 중 → 대기 → 완료 순으로, 완료는 최근 3개만 |
 | 에이전트 | Agent 호출과 SubagentStart/Stop. 실행 중인 것은 경과 시간, 끝난 것은 최근 3개 |
+| 핀 | pinboard의 `.claude/pinboard.md` (10초마다, 턴이 끝날 때 다시 읽음) |
+| 다음 단계 | 마지막 응답의 `다음 단계` 아래 체크박스 (next-steps가 제안하게 함) |
+| 인수인계 | auto-handoff의 `.claude/handoff/HANDOFF.md` 작성 시각과 `NOTES.md` 메모 수 |
+
+핀·다음 단계·인수인계는 해당 mod가 없어도 파일이나 응답 형식만 맞으면 표시됩니다.
 
 명령:
 
@@ -112,14 +128,12 @@ step  ██████████░░ 3/5
 
 ## 개발
 
-두 mod는 `plugins/` 아래 각자의 폴더에 있고, 저장소 루트는 marketplace입니다.
+각 mod는 `plugins/<이름>/`에 있고, 저장소 루트는 marketplace입니다.
 
 ```
 claude --plugin-dir ./plugins/usage-hud --plugin-dir ./plugins/plan-board
 claude plugin validate .                     # marketplace
-claude plugin validate plugins/plan-board
-claude plugin test plugins/usage-hud
-claude plugin test plugins/plan-board
+for m in plugins/*; do claude plugin validate $m && claude plugin test $m; done
 ```
 
 ## License

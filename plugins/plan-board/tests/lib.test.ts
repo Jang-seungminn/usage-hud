@@ -1,6 +1,6 @@
 import { test, expect } from 'claude-code/testing'
 import {
-  bar, createTask, formatElapsed, fromTodos, isPlanPath, isSpecPath, oneLine, parsePlan, planProgress, sortTasks,
+  bar, countBullets, createTask, formatElapsed, fromTodos, parseNextSteps, parsePins, isPlanPath, isSpecPath, oneLine, parsePlan, planProgress, sortTasks,
   updateTask, upsertAgent,
 } from '../hooks/lib'
 
@@ -82,4 +82,15 @@ test('formatting', () => {
   expect(formatElapsed(3_900_000)).toBe('1h05m')
   expect(bar(1, 4, 8)).toEqual([2, 6])
   expect(bar(0, 0, 8)).toEqual([0, 8])
+})
+
+test('reads pinboard pins, next steps and note counts', () => {
+  const pinboard = '# Pinboard\n\n/pin, /unpin 으로 관리한다. 한 줄에 핀 하나.\n\n- [결정] 2026-10-10 DI는 생성자 주입만\n- [할일] 2026-10-11 리뷰 반영\n'
+  expect(parsePins(pinboard)).toEqual([
+    { kind: '결정', text: 'DI는 생성자 주입만' },
+    { kind: '할일', text: '리뷰 반영' },
+  ])
+  expect(parseNextSteps('끝.\n- [ ] 앞의 것은 무시\n\n**다음 단계**\n- [ ] **빌드** 확인\n- [x] 끝난 것\n- [ ] 테스트 추가')).toEqual(['빌드 확인', '테스트 추가'])
+  expect(parseNextSteps('그냥 답변')).toEqual([])
+  expect(countBullets('# 수동 메모\n\n- a\n- b\n')).toBe(2)
 })
