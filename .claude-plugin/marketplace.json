@@ -1,12 +1,44 @@
 {
   "name": "usage-hud",
-  "owner": { "name": "Jang-seungminn" },
-  "description": "usage-hud: a usage HUD for Claude Code with two animated dogs",
+  "owner": {
+    "name": "Jang-seungminn"
+  },
+  "description": "Claude Code mods: usage HUD, plan board, handoff, pins and more",
   "plugins": [
     {
       "name": "usage-hud",
-      "source": "./",
+      "source": "./plugins/usage-hud",
       "description": "Above-prompt usage HUD with two animated dogs"
+    },
+    {
+      "name": "plan-board",
+      "source": "./plugins/plan-board",
+      "description": "Side pane: session goal, superpowers plan progress, tasks and subagents"
+    },
+    {
+      "name": "auto-handoff",
+      "source": "./plugins/auto-handoff",
+      "description": "/handoff 로 대화를 인수인계서로 정리하고 /pickup 으로 새 세션에서 이어받는다"
+    },
+    {
+      "name": "korean-ui",
+      "source": "./plugins/korean-ui",
+      "description": "한국어 응답 규칙과 슬래시 명령의 한국어 설명"
+    },
+    {
+      "name": "next-steps",
+      "source": "./plugins/next-steps",
+      "description": "작업 응답 끝에 다음 단계를 제안하고 /next 로 입력창에 넣는다"
+    },
+    {
+      "name": "pinboard",
+      "source": "./plugins/pinboard",
+      "description": "/pin 으로 결정 사항과 할 일을 고정해 매 요청에 싣는다"
+    },
+    {
+      "name": "prompt-coach",
+      "source": "./plugins/prompt-coach",
+      "description": "/coach 로 요청을 대상·완료 기준·제약이 분명한 프롬프트로 다듬는다"
     }
   ]
 }

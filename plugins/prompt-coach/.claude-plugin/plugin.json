@@ -1,0 +1,12 @@
+{
+  "name": "prompt-coach",
+  "version": "0.1.0",
+  "description": "/coach 로 요청을 대상·완료 기준·제약이 분명한 프롬프트로 다듬는다",
+  "author": {
+    "name": "Jang-seungminn",
+    "url": "https://github.com/Jang-seungminn"
+  },
+  "homepage": "https://github.com/Jang-seungminn/usage-hud",
+  "repository": "https://github.com/Jang-seungminn/usage-hud",
+  "license": "MIT"
+}

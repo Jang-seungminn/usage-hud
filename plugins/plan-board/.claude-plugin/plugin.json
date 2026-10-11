@@ -1,0 +1,10 @@
+{
+  "name": "plan-board",
+  "version": "0.1.0",
+  "description": "Side pane for Claude Code: the session's goal, the superpowers plan's progress, tasks and running subagents",
+  "author": { "name": "Jang-seungminn", "url": "https://github.com/Jang-seungminn" },
+  "homepage": "https://github.com/Jang-seungminn/usage-hud",
+  "repository": "https://github.com/Jang-seungminn/usage-hud",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

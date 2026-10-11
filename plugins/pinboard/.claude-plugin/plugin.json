@@ -1,0 +1,13 @@
+{
+  "name": "pinboard",
+  "version": "0.1.0",
+  "description": "/pin 으로 결정 사항과 할 일을 고정해 매 요청에 싣는다",
+  "author": {
+    "name": "Jang-seungminn",
+    "url": "https://github.com/Jang-seungminn"
+  },
+  "homepage": "https://github.com/Jang-seungminn/usage-hud",
+  "repository": "https://github.com/Jang-seungminn/usage-hud",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

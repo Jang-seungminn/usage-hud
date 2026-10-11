@@ -22,6 +22,23 @@ Claude Code 터미널 세션의 프롬프트에서 다음을 입력합니다.
 
 `Add marketplace?`에 `y`를 입력하고, scope를 고릅니다. 모든 세션에서 쓰려면 user scope를 선택합니다. 설치한 세션에서 바로 동작합니다.
 
+같은 marketplace에 다른 mod도 있습니다. 필요한 것만 같은 방식으로 설치합니다.
+
+```
+/plugin install plan-board --marketplace Jang-seungminn/usage-hud
+```
+
+| mod | 하는 일 |
+|---|---|
+| [plan-board](#plan-board) | 사이드 패널: 목표, superpowers 플랜 진행률, 작업, 서브에이전트, 핀, 다음 단계, 인수인계 |
+| auto-handoff | `/handoff`로 대화를 `.claude/handoff/HANDOFF.md`에 정리, 새 세션에서 `/pickup`으로 이어받기, `/note`로 메모. 컨텍스트 70%·90%에서 알림 |
+| pinboard | `/pin <결정>`, `/pin 할일: <내용>`, `/unpin <번호>`, `/pins`. 핀은 `.claude/pinboard.md`에 저장되고 매 요청의 시스템 프롬프트에 실림 |
+| next-steps | 작업을 끝낸 응답 끝에 `다음 단계` 체크박스 2~3개를 제안. `/next`로 목록, `/next <번호>`로 입력창에 넣기 |
+| prompt-coach | `/coach <요청>`(또는 입력창의 내용)을 대상·완료 기준·제약이 분명한 요청으로 다듬어 입력창에 넣기. 실행 전 불명확하면 질문하라는 규칙 포함 |
+| korean-ui | 한국어 응답 규칙, 기본 슬래시 명령 설명을 한국어로 |
+
+auto-handoff, pinboard, next-steps, prompt-coach, korean-ui는 시스템 프롬프트에 짧은 규칙을 하나씩 덧붙입니다. 쓰지 않는 것은 설치하지 않는 편이 요청당 토큰을 아낍니다.
+
 ## 보여주는 것
 
 | 항목 | 내용 |
@@ -63,12 +80,60 @@ Claude Code 터미널 세션의 프롬프트에서 다음을 입력합니다.
 - 사용 한도(5h/7d)는 Claude 구독 계정에서만 표시됩니다.
 - 권한 모드 배지는 다음 프롬프트나 도구 실행 때 갱신됩니다.
 
-## 개발
+## plan-board
+
+사이드 패널(fullscreen에서는 transcript 옆, 아니면 프롬프트 위)에 이 세션이 **무엇을 하려는지**와 **어디까지 왔는지**를 보여줍니다. 보여줄 것이 처음 생길 때 패널이 한 번 열리고, 닫은 뒤에는 `/board`로 다시 엽니다.
 
 ```
-claude --plugin-dir ./usage-hud      # 이 폴더에서 바로 로드
-claude plugin validate .
-claude plugin test .
+◎ 목표
+GitHub 로그인 붙이기
+plan Users can sign in with GitHub.
+/goal bun test exits 0
+
+▤ 플랜 2026-10-11-auth.md
+plan  Auth Feature Implementation Plan
+task  ██████░░░░░░ 1/3
+step  ██████████░░ 3/5
+▶ Task 2: Session cookie
+  ✓ Step 1: Write the failing test
+  ○ Step 2: Implement setCookie
+○ Task 3: Logout
+
+☰ 작업 ████░░░░ 1/2
+▶ Writing plan
+✓ Write spec
+
+⚙ 에이전트 실행 1 · 완료 2
+● Explore auth code [Explore] 1m05s
+✓ Review spec 42s
+```
+
+| 영역 | 어디서 오나 |
+|---|---|
+| 목표 | `/mission <목표>`로 정한 목표. 없으면 세션의 첫 프롬프트. 플랜 파일의 `**Goal:**` 줄, 내장 `/goal`(또는 ProposeGoal)의 완료 조건도 함께 |
+| 플랜 | `…/plans/*.md` 파일을 Write/Edit 하면 읽어서, 체크박스가 있는 제목(`### Task N: …`)을 작업으로, 체크박스를 단계로 셉니다. 매 턴이 끝날 때 다시 읽으므로 sed 등으로 체크해도 반영됩니다. superpowers의 `docs/superpowers/plans/`, `docs/plans/` 모두 해당 |
+| spec | `…/specs/*.md` 또는 `*-design.md`를 쓰면 제목을 표시 |
+| 작업 / 할 일 | TaskCreate·TaskUpdate·TaskList, TodoWrite. 진행 중 → 대기 → 완료 순으로, 완료는 최근 3개만 |
+| 에이전트 | Agent 호출과 SubagentStart/Stop. 실행 중인 것은 경과 시간, 끝난 것은 최근 3개 |
+| 핀 | pinboard의 `.claude/pinboard.md` (10초마다, 턴이 끝날 때 다시 읽음) |
+| 다음 단계 | 마지막 응답의 `다음 단계` 아래 체크박스 (next-steps가 제안하게 함) |
+| 인수인계 | auto-handoff의 `.claude/handoff/HANDOFF.md` 작성 시각과 `NOTES.md` 메모 수 |
+
+핀·다음 단계·인수인계는 해당 mod가 없어도 파일이나 응답 형식만 맞으면 표시됩니다.
+
+명령:
+
+- `/board` 패널 열기, `/board clear` 작업·플랜·에이전트 목록 비우기
+- `/mission <목표>` 목표 정하기, `/mission` 현재 목표 보기, `/mission clear` 지우기
+
+## 개발
+
+각 mod는 `plugins/<이름>/`에 있고, 저장소 루트는 marketplace입니다.
+
+```
+claude --plugin-dir ./plugins/usage-hud --plugin-dir ./plugins/plan-board
+claude plugin validate .                     # marketplace
+for m in plugins/*; do claude plugin validate $m && claude plugin test $m; done
 ```
 
 ## License

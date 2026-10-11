@@ -1,0 +1,13 @@
+{
+  "name": "auto-handoff",
+  "version": "0.1.0",
+  "description": "/handoff 로 대화를 인수인계서로 정리하고 /pickup 으로 새 세션에서 이어받는다",
+  "author": {
+    "name": "Jang-seungminn",
+    "url": "https://github.com/Jang-seungminn"
+  },
+  "homepage": "https://github.com/Jang-seungminn/usage-hud",
+  "repository": "https://github.com/Jang-seungminn/usage-hud",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}

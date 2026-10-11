@@ -1,0 +1,12 @@
+{
+  "name": "korean-ui",
+  "version": "0.1.0",
+  "description": "한국어 응답 규칙과 슬래시 명령의 한국어 설명",
+  "author": {
+    "name": "Jang-seungminn",
+    "url": "https://github.com/Jang-seungminn"
+  },
+  "homepage": "https://github.com/Jang-seungminn/usage-hud",
+  "repository": "https://github.com/Jang-seungminn/usage-hud",
+  "license": "MIT"
+}
