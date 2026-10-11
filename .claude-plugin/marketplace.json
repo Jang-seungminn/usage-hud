@@ -1,12 +1,19 @@
 {
   "name": "usage-hud",
-  "owner": { "name": "Jang-seungminn" },
-  "description": "usage-hud: a usage HUD for Claude Code with two animated dogs",
+  "owner": {
+    "name": "Jang-seungminn"
+  },
+  "description": "usage-hud and plan-board: Claude Code mods for usage and planning",
   "plugins": [
     {
       "name": "usage-hud",
-      "source": "./",
+      "source": "./plugins/usage-hud",
       "description": "Above-prompt usage HUD with two animated dogs"
+    },
+    {
+      "name": "plan-board",
+      "source": "./plugins/plan-board",
+      "description": "Side pane: session goal, superpowers plan progress, tasks and subagents"
     }
   ]
 }
